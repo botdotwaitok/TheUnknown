@@ -207,69 +207,166 @@ function toggleMasks(forceState) {
     toastr[nextState ? "success" : "info"](nextState ? "打码已开启" : "打码已关闭");
 }
 
-// 构建 UI
+// 构建 UI 
 function buildUI() {
     const settings = loadSettings();
 
-    // 修复：将 buildReplacement 定义在 buildUI 内部
+    // 1. 定义 CSS样式 (注入到页面中，保持界面整洁)
+    const styleBlock = `
+    <style>
+        /* 外层容器：增加间距 */
+        .tu-settings-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            font-size: 13px;
+        }
+        /* 卡片样式：半透明背景 + 柔和边框 */
+        .tu-card {
+            background: var(--smart-theme-bg-transfer, rgba(0, 0, 0, 0.15));
+            border: 1px solid var(--smart-theme-border, rgba(255, 255, 255, 0.1));
+            border-radius: 8px;
+            padding: 12px;
+            transition: all 0.2s ease;
+        }
+        .tu-card:hover {
+            border-color: var(--smart-theme-accent, rgba(255, 255, 255, 0.3));
+        }
+        /* 标题栏布局 */
+        .tu-head-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            padding-bottom: 8px;
+            border-bottom: 1px dashed var(--smart-theme-border, rgba(255,255,255,0.1));
+        }
+        .tu-title { font-weight: 700; opacity: 0.9; }
+        
+        /* 输入框美化 */
+        .tu-input-area {
+            width: 100%;
+            font-family: monospace;
+            font-size: 0.9em;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid transparent;
+            border-radius: 4px;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+        .tu-input-area:focus {
+            border-color: var(--smart-theme-accent, #aaa);
+            outline: none;
+        }
+        
+        /* 底部操作行 */
+        .tu-action-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 8px;
+            flex-wrap: wrap;
+        }
+        .tu-small-label {
+            font-size: 0.85em; 
+            opacity: 0.7; 
+            display: flex; 
+            align-items: center; 
+            gap: 4px;
+        }
+
+        /* 保存按钮美化 */
+        .tu-save-btn {
+            background: var(--smart-theme-accent, #4caf50); 
+            color: var(--smart-theme-accent-text, #fff);
+            padding: 10px;
+            border-radius: 6px;
+            text-align: center;
+            cursor: pointer;
+            font-weight: 600;
+            margin-top: 5px;
+            transition: filter 0.2s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .tu-save-btn:hover { filter: brightness(1.15); }
+        .tu-save-btn:active { transform: translateY(1px); }
+
+        /* 提示文字 */
+        .tu-hint {
+            font-size: 0.8em;
+            opacity: 0.5;
+            text-align: center;
+            margin-top: 4px;
+            display: block;
+        }
+    </style>
+    `;
+
+    // 修复：将 buildReplacement 定义在 buildUI 内部 (逻辑保持不变)
     const buildReplacement = (val) => {
         if (!val) return "";
         const trimmed = val.trim();
-        // 检测是否以 http 或 https 开头
         if (trimmed.toLowerCase().startsWith("http")) {
             return `<img src="${trimmed}" title="$1" alt="icon" style="height: 1.3em; width: auto; vertical-align: middle; position: relative; bottom: 0.15em; display: inline-block; margin: 0 2px; border-radius: 2px; cursor: help; object-fit: contain;">`;
         }
         return trimmed;
     };
     
-    const generateBlock = (key, title) => `
-        <div style="background: rgba(0,0,0,0.2); padding: 10px; border-radius: 5px; margin-bottom: 10px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
-                <strong>${title}</strong>
-                <label class="checkbox_label">
+    // 生成卡片 HTML
+    const generateCard = (key, title, placeholder) => `
+        <div class="tu-card">
+            <div class="tu-head-row">
+                <span class="tu-title">${title}</span>
+                <label class="checkbox_label" title="开启/关闭此项打码">
                     <input type="checkbox" data-key="${key}" class="mask_enable_cb" ${settings[key].enabled ? "checked" : ""} />
                     启用
                 </label>
             </div>
-            <textarea data-key="${key}" class="text_pole mask_input" rows="2" placeholder="输入 Emoji 或 图片链接 (http...)">${settings[key].replacement}</textarea>
+            <textarea data-key="${key}" class="text_pole mask_input tu-input-area" rows="1" placeholder="${placeholder}" style="resize:vertical; min-height:36px;">${settings[key].replacement}</textarea>
         </div>
     `;
 
-    // 修复点：给 #mask_save_btn 增加了 style 样式，强制宽度 100% 并居中
     const html = `
+    ${styleBlock}
     <div class="name-masker-settings">
         <div class="inline-drawer">
             <div class="inline-drawer-toggle inline-drawer-header">
-                <b>🫧 打码设置 (Name Masker)</b>
+                <b>🫧 未知恶物打码</b>
                 <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
             </div>
-            <div class="inline-drawer-content">
-                ${generateBlock('user', '{{user}}设置')}
-                ${generateBlock('char', '{{char}} 设置')}
-                <div style="background: rgba(0,0,0,0.2); padding: 10px; border-radius: 5px; margin-bottom: 10px;">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                        <strong>悬浮快速开关</strong>
+            <div class="inline-drawer-content tu-settings-wrapper">
+                
+                ${generateCard('user', '👤 {{user}} 替换设置', '输入 Emoji (如 🐰) 或 图片链接...')}
+                ${generateCard('char', '🤖 {{char}} 替换设置', '输入 Emoji (如 🐱) 或 图片链接...')}
+
+                <div class="tu-card">
+                    <div class="tu-head-row">
+                        <span class="tu-title">悬浮开关设置</span>
                         <label class="checkbox_label">
                             <input type="checkbox" id="mask_floating_enable_cb" ${settings.floatingToggle.enabled ? "checked" : ""} />
-                            显示按钮
+                            显示悬浮球
                         </label>
                     </div>
-                    <div style="display:flex; align-items:center; gap:8px; flex-wrap: wrap;">
-                        <label class="checkbox_label" style="margin-right:12px;">
+                    
+                    <div class="tu-action-row">
+                        <label class="checkbox_label tu-small-label" style="margin-right: auto;">
                             <input type="checkbox" id="mask_master_cb" ${settings.masterEnabled ? "checked" : ""} />
                             默认开启打码
                         </label>
-                        <div style="display:flex; align-items:center; gap:6px; flex:1;">
-                            <span style="font-size:12px;">图标内容：</span>
-                            <input id="mask_floating_icon_input" class="text_pole" style="flex:1; min-width: 120px;" value="${settings.floatingToggle.icon}" placeholder="输入 Emoji 或 <img />" />
+
+                        <div style="display:flex; align-items:center; gap:6px; flex:1; min-width: 140px;">
+                            <span style="font-size:0.85em; opacity:0.7;">图标:</span>
+                            <input id="mask_floating_icon_input" class="text_pole tu-input-area" style="padding: 4px 8px;" value="${settings.floatingToggle.icon}" placeholder="Emoji 或 <img...>" />
                         </div>
-                        <small style="opacity:0.8;">图标可拖动调整位置，点击即可切换开关。</small>
                     </div>
+                    <small class="tu-hint" style="text-align:left; margin-top:8px;">💡 提示：悬浮球可按住拖动位置，点击即可一键切换。</small>
                 </div>
                 
-                <div id="mask_save_btn" class="menu_button" style="width: 100%; display: flex; justify-content: center; align-items: center; margin-top: 10px;">💾 保存并应用</div>
-                
-                <small>输入 http 链接会自动转为图片。支持悬停查看原名。</small>
+                <div>
+                    <div id="mask_save_btn" class="tu-save-btn">💾 保存并应用设置</div>
+                    <small class="tu-hint">输入 http 链接会自动转为图片 | 悬停图标可查看原名</small>
+                </div>
+
             </div>
         </div>
     </div>
@@ -277,13 +374,14 @@ function buildUI() {
 
     $("#extensions_settings").append(html);
 
-    // 绑定保存按钮事件
+    // 绑定保存按钮事件 (逻辑保持不变)
     $("#mask_save_btn").click(() => {
         const settings = loadSettings();
         $(".mask_enable_cb").each((_, el) => {
             const key = $(el).data("key");
             settings[key].enabled = $(el).is(":checked");
         });
+        // 这里的 buildReplacement 在保存时重新调用，确保逻辑正确
         $(".mask_input").each((_, el) => {
             const key = $(el).data("key");
             settings[key].replacement = buildReplacement($(el).val());

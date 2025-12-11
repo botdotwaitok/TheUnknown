@@ -1,5 +1,5 @@
 import { extension_settings, getContext } from '../../../extensions.js';
-import { saveSettings, saveSettingsDebounced, eventSource, event_types } from '../../../script.js';
+import { saveSettings, saveSettingsDebounced, eventSource, event_types } from '../../../../script.js';
 
 const SCRIPT_ID_PREFIX = "The_Unknown";
 const SETTING_KEY = "The_Unknown";
@@ -286,6 +286,7 @@ jQuery(async () => {
     buildUI();
     renderFloatingToggle(loadSettings());
 });
+
 
 
 

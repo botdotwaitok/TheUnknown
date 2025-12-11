@@ -1,7 +1,7 @@
 {
   "display_name": "TheUnknown",
   "name": "TheUnknown",
-  "version": "3.1.0",
+  "version": "1.0",
   "author": "robot",
   "description": "一键名字打码 (User/Char)",
   "loading_order": 100,
@@ -9,4 +9,5 @@
   "homePage": "https://github.com/botdotwaitok",
   "requires": [],
   "optional": []
+
 }

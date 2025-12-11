@@ -3,16 +3,10 @@ import { saveSettings, saveSettingsDebounced, eventSource, event_types } from '.
 
 const SCRIPT_ID_PREFIX = "The_Unknown";
 const SETTING_KEY = "The_Unknown";
-const FLOATING_TOGGLE_ID = "bubble_floating_toggle";
 
+// 1. 默认设置：删掉了悬浮球相关，只保留核心
 const defaultSettings = {
-    masterEnabled: true,
-    floatingToggle: {
-        enabled: true,
-        icon: "🫧",
-        left: 20,
-        top: 80
-    },
+    masterEnabled: true, // 总开关
     user: {
         enabled: true,
         replacement: "🐰", 
@@ -25,27 +19,27 @@ const defaultSettings = {
     }
 };
 
-// 加载设置 (为了让你的配置关掉酒馆后还能保存，我们需要读写 extension_settings)
+// 2. 加载设置
 function loadSettings() {
     const stored = extension_settings[SETTING_KEY] || {};
+    // 合并逻辑，移除悬浮球的脏数据干扰
     const merged = {
         ...defaultSettings,
         ...stored,
         user: { ...defaultSettings.user, ...(stored.user || {}) },
         char: { ...defaultSettings.char, ...(stored.char || {}) },
-        floatingToggle: { ...defaultSettings.floatingToggle, ...(stored.floatingToggle || {}) },
         masterEnabled: typeof stored.masterEnabled === "boolean" ? stored.masterEnabled : defaultSettings.masterEnabled
     };
     extension_settings[SETTING_KEY] = merged;
     return extension_settings[SETTING_KEY];
 }
 
-// 正则转义 (防报错)
+// 正则转义
 function escapeRegExp(string) {
     return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-// 根据用户输入构造替换内容；http(s) 开头时自动包装为 <img ... title="$1" ...>
+// 构建替换内容 (图片/文本)
 const IMAGE_STYLE = 'height: 1.3em; width: auto; vertical-align: middle; position: relative; bottom: 0.15em; display: inline-block; margin: 0 2px; border-radius: 2px; cursor: help; object-fit: contain;';
 function buildReplacement(rawValue) {
     const value = (rawValue ?? '').toString().trim();
@@ -56,44 +50,41 @@ function buildReplacement(rawValue) {
     return value;
 }
 
-// 核心：生成并注入/更新正则脚本
+// 3. 核心应用逻辑 (去掉了悬浮球渲染调用)
 function applyMask() {
     const settings = loadSettings();
     const context = getContext();
-    const masksActive = settings.masterEnabled !== false;
+    
+    // 如果总开关关闭，则视为不打码
+    const masksActive = settings.masterEnabled;
 
-    // 确保列表存在，避免首次加载时报错 (用全局 regex 列表)
     extension_settings.regex = extension_settings.regex || [];
     
-    // 我们定义一个映射关系：配置里的 key -> 酒馆里的真实名字变量
     const targets = [
-        { key: "user", realName: context.name1 }, // name1 是用户
-        { key: "char", realName: context.name2 }  // name2 是角色
+        { key: "user", realName: context.name1 },
+        { key: "char", realName: context.name2 }
     ];
 
     targets.forEach(t => {
-        const config = settings[t.key]; // 获取对应的配置 (user 或 char)
-        const scriptId = `${SCRIPT_ID_PREFIX}_${t.key}`; // 生成唯一ID，例如 plugin_name_masker_user
+        const config = settings[t.key];
+        const scriptId = `${SCRIPT_ID_PREFIX}_${t.key}`;
         const replacement = buildReplacement(config.replacement);
         const safeName = escapeRegExp(t.realName);
         
-        // 1. 先在列表里找找看有没有这个脚本
         const existingIndex = extension_settings.regex.findIndex(x => x.id === scriptId);
 
-        // 如果全局关掉、名字为空（没加载角色时）或者功能被禁用
+        // 条件：总开关关了 OR 名字不存在 OR 单项开关关了 -> 移除脚本
         if (!masksActive || !t.realName || !config.enabled) {
-            // 如果脚本存在，就移除，避免切换开关后还在生效
             if (existingIndex !== -1) {
                 extension_settings.regex.splice(existingIndex, 1);
             }
             return;
         }
 
-        // 2. 构造正则脚本
         const regexScript = {
             id: scriptId,
-            scriptName: `未知恶物: ${config.label}`, // 显示在列表里的名字
-            findRegex: `/(${safeName})/g`, // 捕获组用于 $1
+            scriptName: `未知恶物: ${config.label}`,
+            findRegex: `/(${safeName})/g`,
             replaceString: replacement,
             trimStrings: [],
             placement: [2], // Markdown Only
@@ -106,7 +97,6 @@ function applyMask() {
             maxDepth: null
         };
 
-        // 3. 注入或更新
         if (existingIndex !== -1) {
             extension_settings.regex[existingIndex] = regexScript;
         } else {
@@ -114,114 +104,17 @@ function applyMask() {
         }
     });
 
-    // 保存并刷新界面
     saveSettingsDebounced();
     eventSource.emit(event_types.NOTE_UPDATED);
-    renderFloatingToggle(settings);
 }
 
-// 悬浮按钮：拖拽 & 点击
-function attachFloatingToggleDrag($toggle) {
-    let dragging = false;
-    let moved = false;
-    let offsetX = 0;
-    let offsetY = 0;
-
-    const savePosition = () => {
-        const settings = loadSettings();
-        const left = parseInt($toggle.css("left"), 10);
-        const top = parseInt($toggle.css("top"), 10);
-        settings.floatingToggle.left = left;
-        settings.floatingToggle.top = top;
-        extension_settings[SETTING_KEY] = settings;
-        saveSettingsDebounced();
-    };
-
-    $toggle.on("mousedown", (e) => {
-        dragging = true;
-        moved = false;
-        offsetX = e.clientX - $toggle[0].offsetLeft;
-        offsetY = e.clientY - $toggle[0].offsetTop;
-        e.preventDefault();
-    });
-
-    $(document).off(".maskFloatingToggle");
-    $(document).on("mousemove.maskFloatingToggle", (e) => {
-        if (!dragging) return;
-        moved = true;
-        const left = e.clientX - offsetX;
-        const top = e.clientY - offsetY;
-        $toggle.css({ left, top });
-    });
-
-    $(document).on("mouseup.maskFloatingToggle", () => {
-        if (!dragging) return;
-        dragging = false;
-        if (moved) {
-            savePosition();
-            return;
-        }
-        toggleMasks(); // 没有拖动，当作点击
-    });
-
-    // 防止 click 触发两次 toggle
-    $toggle.on("click", (e) => e.preventDefault());
-}
-
-// 创建 / 更新悬浮按钮
-function renderFloatingToggle(settings = loadSettings()) {
-    const floatCfg = settings.floatingToggle || defaultSettings.floatingToggle;
-    let $toggle = $(`#${FLOATING_TOGGLE_ID}`);
-
-    if (!floatCfg.enabled) {
-        if ($toggle.length) $toggle.remove();
-        return;
-    }
-
-    if (!$toggle.length) {
-        $toggle = $(`
-            <div id="${FLOATING_TOGGLE_ID}" title="点击快速开关打码" style="position: fixed; left: ${floatCfg.left}px; top: ${floatCfg.top}px; width: 46px; height: 46px; background: rgba(0,0,0,0.45); color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: move; z-index: 9999; box-shadow: 0 6px 18px rgba(0,0,0,0.25); user-select: none;">
-                <span class="mask-float-icon"></span>
-            </div>
-        `);
-        $("body").append($toggle);
-        attachFloatingToggleDrag($toggle);
-    }
-
-    $toggle.find(".mask-float-icon").html(floatCfg.icon || "🎭");
-    $toggle.toggleClass("mask-off", !settings.masterEnabled);
-    $toggle.css({
-        left: floatCfg.left,
-        top: floatCfg.top,
-        opacity: settings.masterEnabled ? 1 : 0.6
-    });
-}
-
-// 全局开关（悬浮按钮 & UI 使用）
-function toggleMasks(forceState) {
-    const settings = loadSettings();
-    const nextState = typeof forceState === "boolean" ? forceState : !settings.masterEnabled;
-    settings.masterEnabled = nextState;
-    extension_settings[SETTING_KEY] = settings;
-    applyMask();
-    toastr[nextState ? "success" : "info"](nextState ? "打码已开启" : "打码已关闭");
-}
-
-// 构建 UI 
+// 4. 构建 UI (去繁就简版)
 function buildUI() {
     const settings = loadSettings();
 
-    // 1. 定义 CSS样式 (注入到页面中，保持界面整洁)
     const styleBlock = `
     <style>
-        /* 外层容器：增加间距 */
-        .tu-settings-wrapper {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            font-size: 13px;
-        }
-        /* 卡片样式：半透明背景 + 柔和边框 */
+        .tu-settings-wrapper { display: flex; flex-direction: column; gap: 12px; font-size: 13px; }
         .tu-card {
             background: var(--smart-theme-bg-transfer, rgba(0, 0, 0, 0.15));
             border: 1px solid var(--smart-theme-border, rgba(255, 255, 255, 0.1));
@@ -229,95 +122,52 @@ function buildUI() {
             padding: 12px;
             transition: all 0.2s ease;
         }
-        .tu-card:hover {
-            border-color: var(--smart-theme-accent, rgba(255, 255, 255, 0.3));
-        }
-        /* 标题栏布局 */
+        .tu-card:hover { border-color: var(--smart-theme-accent, rgba(255, 255, 255, 0.3)); }
+        
+        /* 标题栏 */
         .tu-head-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
-            padding-bottom: 8px;
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 8px; padding-bottom: 8px;
             border-bottom: 1px dashed var(--smart-theme-border, rgba(255,255,255,0.1));
         }
         .tu-title { font-weight: 700; opacity: 0.9; }
-        
-        /* 输入框美化 */
+
+        /* 输入框 */
         .tu-input-area {
-            width: 100%;
-            font-family: monospace;
-            font-size: 1em;
-            background: rgba(0, 0, 0, 0.2);
-            border: 1px solid transparent;
-            border-radius: 4px;
-            padding: 8px;
-            box-sizing: border-box;
+            width: 100%; font-family: monospace; font-size: 1.1em;
+            background: rgba(0, 0, 0, 0.2); border: 1px solid transparent; border-radius: 4px; padding: 8px; box-sizing: border-box;
         }
-        .tu-input-area:focus {
-            border-color: var(--smart-theme-accent, #aaa);
-            outline: none;
+        .tu-input-area:focus { border-color: var(--smart-theme-accent, #aaa); outline: none; }
+
+        /* 强调色总开关卡片 */
+        .tu-master-card {
+            border-left: 4px solid var(--smart-theme-accent, #4caf50);
         }
-        
-        /* 底部操作行 */
-        .tu-action-row {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-top: 8px;
-            flex-wrap: wrap;
-        }
-        .tu-small-label {
-            font-size: 1em; 
-            opacity: 0.7; 
-            display: flex; 
-            align-items: center; 
-            gap: 4px;
+        .tu-master-card.disabled {
+            border-left-color: #666;
+            opacity: 0.8;
         }
 
-        /* 保存按钮美化 */
+        /* 保存按钮 */
         .tu-save-btn {
             background: var(--smart-theme-accent, #4caf50); 
             color: var(--smart-theme-accent-text, #fff);
-            padding: 10px;
-            border-radius: 6px;
-            text-align: center;
-            cursor: pointer;
-            font-weight: 600;
-            margin-top: 5px;
-            transition: filter 0.2s;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            padding: 10px; border-radius: 6px; text-align: center;
+            cursor: pointer; font-weight: 600; margin-top: 5px;
+            transition: filter 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
         .tu-save-btn:hover { filter: brightness(1.15); }
         .tu-save-btn:active { transform: translateY(1px); }
-
-        /* 提示文字 */
-        .tu-hint {
-            font-size: 1em;
-            opacity: 0.5;
-            text-align: center;
-            margin-top: 4px;
-            display: block;
-        }
+        .tu-hint { font-size: 0.8em; opacity: 0.5; text-align: center; margin-top: 4px; display: block; }
     </style>
     `;
 
-    // 修复：将 buildReplacement 定义在 buildUI 内部 (逻辑保持不变)
-    const buildReplacement = (val) => {
-        if (!val) return "";
-        const trimmed = val.trim();
-        if (trimmed.toLowerCase().startsWith("http")) {
-            return `<img src="${trimmed}" title="$1" alt="icon" style="height: 1.3em; width: auto; vertical-align: middle; position: relative; bottom: 0.15em; display: inline-block; margin: 0 2px; border-radius: 2px; cursor: help; object-fit: contain;">`;
-        }
-        return trimmed;
-    };
-    
-    // 生成卡片 HTML
+    // 辅助：生成输入卡片
     const generateCard = (key, title, placeholder) => `
         <div class="tu-card">
             <div class="tu-head-row">
                 <span class="tu-title">${title}</span>
-                <label class="checkbox_label" title="开启/关闭此项打码">
+                <label class="checkbox_label" title="独立开关">
                     <input type="checkbox" data-key="${key}" class="mask_enable_cb" ${settings[key].enabled ? "checked" : ""} />
                     启用
                 </label>
@@ -325,6 +175,16 @@ function buildUI() {
             <textarea data-key="${key}" class="text_pole mask_input tu-input-area" rows="1" placeholder="${placeholder}" style="resize:vertical; min-height:36px;">${settings[key].replacement}</textarea>
         </div>
     `;
+
+    // 辅助：处理输入逻辑
+    const buildReplacementLocal = (val) => {
+        if (!val) return "";
+        const trimmed = val.trim();
+        if (trimmed.toLowerCase().startsWith("http")) {
+            return `<img src="${trimmed}" title="$1" alt="icon" style="height: 1.3em; width: auto; vertical-align: middle; position: relative; bottom: 0.15em; display: inline-block; margin: 0 2px; border-radius: 2px; cursor: help; object-fit: contain;">`;
+        }
+        return trimmed;
+    };
 
     const html = `
     ${styleBlock}
@@ -336,34 +196,25 @@ function buildUI() {
             </div>
             <div class="inline-drawer-content tu-settings-wrapper">
                 
-                ${generateCard('user', '👤 {{user}} 替换设置', '输入 Emoji (如 🐰) 或 图片链接...')}
-                ${generateCard('char', '🤖 {{char}} 替换设置', '输入 Emoji (如 🐱) 或 图片链接...')}
+                ${generateCard('user', '👤 {{user}} 替换设置', 'Emoji 或 图片链接')}
+                ${generateCard('char', '🤖 {{char}} 替换设置', 'Emoji 或 图片链接')}
 
-                <div class="tu-card">
-                    <div class="tu-head-row">
-                        <span class="tu-title">悬浮开关设置</span>
-                        <label class="checkbox_label">
-                            <input type="checkbox" id="mask_floating_enable_cb" ${settings.floatingToggle.enabled ? "checked" : ""} />
-                            显示悬浮球
-                        </label>
-                    </div>
-                    
-                    <div class="tu-action-row">
-                        <label class="checkbox_label tu-small-label" style="margin-right: auto;">
-                            <input type="checkbox" id="mask_master_cb" ${settings.masterEnabled ? "checked" : ""} />
-                            默认开启打码
-                        </label>
-
-                        <div style="display:flex; align-items:center; gap:6px; flex:1; min-width: 140px;">
-                            <span style="font-size:0.85em; opacity:0.7;">图标:</span>
-                            <input id="mask_floating_icon_input" class="text_pole tu-input-area" style="padding: 4px 8px;" value="${settings.floatingToggle.icon}" placeholder="Emoji 或 <img...>" />
+                <div class="tu-card tu-master-card ${settings.masterEnabled ? '' : 'disabled'}" id="tu-master-card-el">
+                    <div class="tu-head-row" style="margin-bottom:0; padding-bottom:0; border:none;">
+                        <div style="display:flex; flex-direction:column;">
+                            <span class="tu-title" style="font-size:1.1em;">🛡️ 打码总开关</span>
+                            <span style="font-size:0.85em; opacity:0.6; margin-top:2px;">一键启用或禁用所有替换</span>
                         </div>
+                        <label class="switch_label" style="margin:0;">
+                            <input type="checkbox" id="mask_master_cb" ${settings.masterEnabled ? "checked" : ""} />
+                            <span class="slider round"></span>
+                        </label>
                     </div>
                 </div>
                 
                 <div>
                     <div id="mask_save_btn" class="tu-save-btn">💾 保存并应用设置</div>
-                    <small class="tu-hint">输入 http 链接会自动转为图片 | 悬停图标可查看原名</small>
+                    <small class="tu-hint">输入 http 链接会自动转为图片</small>
                 </div>
 
             </div>
@@ -373,21 +224,28 @@ function buildUI() {
 
     $("#extensions_settings").append(html);
 
-    // 绑定保存按钮事件 (逻辑保持不变)
+    // 交互逻辑：点击总开关时，稍微改变一下卡片样式增加反馈
+    $("#mask_master_cb").on("change", function() {
+        const isChecked = $(this).is(":checked");
+        $("#tu-master-card-el").toggleClass("disabled", !isChecked);
+    });
+
+    // 保存逻辑
     $("#mask_save_btn").click(() => {
         const settings = loadSettings();
+        
+        // 保存 User/Char 设置
         $(".mask_enable_cb").each((_, el) => {
             const key = $(el).data("key");
             settings[key].enabled = $(el).is(":checked");
         });
-        // 这里的 buildReplacement 在保存时重新调用，确保逻辑正确
         $(".mask_input").each((_, el) => {
             const key = $(el).data("key");
-            settings[key].replacement = buildReplacement($(el).val());
+            settings[key].replacement = buildReplacementLocal($(el).val());
         });
+
+        // 保存总开关
         settings.masterEnabled = $("#mask_master_cb").is(":checked");
-        settings.floatingToggle.enabled = $("#mask_floating_enable_cb").is(":checked");
-        settings.floatingToggle.icon = $("#mask_floating_icon_input").val() || defaultSettings.floatingToggle.icon;
 
         extension_settings[SETTING_KEY] = settings;
         applyMask();
@@ -397,15 +255,12 @@ function buildUI() {
 
 // 插件入口
 jQuery(async () => {
-    // 各种事件监听，确保换人、改名时自动更新正则
     const refresh = () => { if(extension_settings[SETTING_KEY]) applyMask(); };
-    
     eventSource.on(event_types.CHARACTER_LOADED, refresh);
     eventSource.on(event_types.CHAT_CHANGED, refresh);
-    eventSource.on(event_types.MESSAGE_RECEIVED, refresh); // 这是一个保险，防止有时候没刷新
+    eventSource.on(event_types.MESSAGE_RECEIVED, refresh);
 
     buildUI();
-    renderFloatingToggle(loadSettings());
+    // 启动时清理一下旧的悬浮球元素（如果之前存在）
+    $("#bubble_floating_toggle").remove();
 });
-
-

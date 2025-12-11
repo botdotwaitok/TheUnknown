@@ -82,9 +82,9 @@ function applyMask() {
 
         // 如果全局关掉、名字为空（没加载角色时）或者功能被禁用
         if (!masksActive || !t.realName || !config.enabled) {
-            // 如果脚本存在，就把它禁用掉
+            // 如果脚本存在，就移除，避免切换开关后还在生效
             if (existingIndex !== -1) {
-                extension_settings.regex[existingIndex].disabled = true;
+                extension_settings.regex.splice(existingIndex, 1);
             }
             return;
         }
@@ -300,6 +300,5 @@ jQuery(async () => {
     buildUI();
     renderFloatingToggle(loadSettings());
 });
-
 
 

@@ -261,7 +261,8 @@ function buildUI() {
         });
         $(".mask_input").each((_, el) => {
             const key = $(el).data("key");
-            settings[key].replacement = $(el).val();
+            // 保存时就做一次智能检测/包装，避免只是保存了链接
+            settings[key].replacement = buildReplacement($(el).val());
         });
         settings.masterEnabled = $("#mask_master_cb").is(":checked");
         settings.floatingToggle.enabled = $("#mask_floating_enable_cb").is(":checked");
@@ -286,7 +287,6 @@ jQuery(async () => {
     buildUI();
     renderFloatingToggle(loadSettings());
 });
-
 
 
 

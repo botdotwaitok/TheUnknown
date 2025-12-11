@@ -247,7 +247,7 @@ function buildUI() {
         .tu-input-area {
             width: 100%;
             font-family: monospace;
-            font-size: 0.9em;
+            font-size: 1em;
             background: rgba(0, 0, 0, 0.2);
             border: 1px solid transparent;
             border-radius: 4px;
@@ -268,7 +268,7 @@ function buildUI() {
             flex-wrap: wrap;
         }
         .tu-small-label {
-            font-size: 0.85em; 
+            font-size: 1em; 
             opacity: 0.7; 
             display: flex; 
             align-items: center; 
@@ -293,7 +293,7 @@ function buildUI() {
 
         /* 提示文字 */
         .tu-hint {
-            font-size: 0.8em;
+            font-size: 1em;
             opacity: 0.5;
             text-align: center;
             margin-top: 4px;
@@ -359,7 +359,6 @@ function buildUI() {
                             <input id="mask_floating_icon_input" class="text_pole tu-input-area" style="padding: 4px 8px;" value="${settings.floatingToggle.icon}" placeholder="Emoji 或 <img...>" />
                         </div>
                     </div>
-                    <small class="tu-hint" style="text-align:left; margin-top:8px;">💡 提示：悬浮球可按住拖动位置，点击即可一键切换。</small>
                 </div>
                 
                 <div>

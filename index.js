@@ -210,8 +210,18 @@ function toggleMasks(forceState) {
 // 构建 UI
 function buildUI() {
     const settings = loadSettings();
+
+    // 修复：将 buildReplacement 定义在 buildUI 内部
+    const buildReplacement = (val) => {
+        if (!val) return "";
+        const trimmed = val.trim();
+        // 检测是否以 http 或 https 开头
+        if (trimmed.toLowerCase().startsWith("http")) {
+            return `<img src="${trimmed}" title="$1" alt="icon" style="height: 1.3em; width: auto; vertical-align: middle; position: relative; bottom: 0.15em; display: inline-block; margin: 0 2px; border-radius: 2px; cursor: help; object-fit: contain;">`;
+        }
+        return trimmed;
+    };
     
-    // HTML 模板：循环生成 user 和 char 的设置块
     const generateBlock = (key, title) => `
         <div style="background: rgba(0,0,0,0.2); padding: 10px; border-radius: 5px; margin-bottom: 10px;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
@@ -221,15 +231,16 @@ function buildUI() {
                     启用
                 </label>
             </div>
-            <textarea data-key="${key}" class="text_pole mask_input" rows="2" placeholder="输入 Emoji 或 <img src='...' />">${settings[key].replacement}</textarea>
+            <textarea data-key="${key}" class="text_pole mask_input" rows="2" placeholder="输入 Emoji 或 图片链接 (http...)">${settings[key].replacement}</textarea>
         </div>
     `;
 
+    // 修复点：给 #mask_save_btn 增加了 style 样式，强制宽度 100% 并居中
     const html = `
     <div class="name-masker-settings">
         <div class="inline-drawer">
             <div class="inline-drawer-toggle inline-drawer-header">
-                <b>🫧 未知恶物打码设置</b>
+                <b>🫧 打码设置 (Name Masker)</b>
                 <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
             </div>
             <div class="inline-drawer-content">
@@ -255,12 +266,11 @@ function buildUI() {
                         <small style="opacity:0.8;">图标可拖动调整位置，点击即可切换开关。</small>
                     </div>
                 </div>
-<div id="mask_save_btn"
-     class="menu_button"
-     style="display:flex;align-items:center;gap:6px;writing-mode:horizontal-tb;text-orientation:mixed;">
-  <span>💾</span><span>保存并应用</span>
-</div>
-
+                
+                <div id="mask_save_btn" class="menu_button" style="width: 100%; display: flex; justify-content: center; align-items: center; margin-top: 10px;">💾 保存并应用</div>
+                
+                <small>输入 http 链接会自动转为图片。支持悬停查看原名。</small>
+            </div>
         </div>
     </div>
     `;
@@ -270,21 +280,18 @@ function buildUI() {
     // 绑定保存按钮事件
     $("#mask_save_btn").click(() => {
         const settings = loadSettings();
-        // 读取 UI 里的值更新到 settings 对象
         $(".mask_enable_cb").each((_, el) => {
             const key = $(el).data("key");
             settings[key].enabled = $(el).is(":checked");
         });
         $(".mask_input").each((_, el) => {
             const key = $(el).data("key");
-            // 保存时就做一次智能检测/包装，避免只是保存了链接
             settings[key].replacement = buildReplacement($(el).val());
         });
         settings.masterEnabled = $("#mask_master_cb").is(":checked");
         settings.floatingToggle.enabled = $("#mask_floating_enable_cb").is(":checked");
         settings.floatingToggle.icon = $("#mask_floating_icon_input").val() || defaultSettings.floatingToggle.icon;
 
-        // 保存到 extension_settings 并执行打码
         extension_settings[SETTING_KEY] = settings;
         applyMask();
         toastr.success("打码设置已更新！");

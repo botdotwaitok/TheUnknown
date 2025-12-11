@@ -131,7 +131,7 @@ function buildUI() {
         .tu-title { font-weight: 700; opacity: 0.9; }
 
         .tu-input-area {
-            width: 100%; font-family: monospace; font-size: 1.1em;
+            width: 100%; font-family: monospace; font-size: 1.3em;
             background: rgba(0, 0, 0, 0.2); border: 1px solid transparent; border-radius: 4px; padding: 8px; box-sizing: border-box;
         }
         .tu-input-area:focus { border-color: var(--smart-theme-accent, #aaa); outline: none; }
@@ -171,7 +171,7 @@ function buildUI() {
             color: var(--smart-theme-accent-text, #fff);
         }
 
-        .tu-hint { font-size: 0.8em; opacity: 0.5; text-align: center; margin-top: 8px; display: block; }
+        .tu-hint { font-size: 1em; opacity: 0.5; text-align: center; margin-top: 8px; display: block; }
     </style>
     `;
 
@@ -207,8 +207,8 @@ function buildUI() {
             </div>
             <div class="inline-drawer-content tu-settings-wrapper">
                 
-                ${generateCard('user', '👤 {{user}} 替换设置', 'Emoji 或 图片链接')}
-                ${generateCard('char', '🤖 {{char}} 替换设置', 'Emoji 或 图片链接')}
+                ${generateCard('user', '{{user}} 替换设置', 'Emoji 或 图片链接')}
+                ${generateCard('char', '{{char}} 替换设置', 'Emoji 或 图片链接')}
 
                 <div style="margin-top: 8px;">
                     <div id="mask_master_toggle_btn" class="tu-btn tu-toggle-btn ${tempMasterEnabled ? 'on' : 'off'}">

@@ -216,12 +216,12 @@ function buildUI() {
     <div class="name-masker-settings">
         <div class="inline-drawer">
             <div class="inline-drawer-toggle inline-drawer-header">
-                <b>🎭 双重打码设置 (Name Masker)</b>
+                <b>🫧 打码设置 (Name Masker)</b>
                 <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
             </div>
             <div class="inline-drawer-content">
-                ${generateBlock('user', 'User (我) 设置')}
-                ${generateBlock('char', 'Char (角色) 设置')}
+                ${generateBlock('user', '{{user}}设置')}
+                ${generateBlock('char', '{{char}} 设置')}
                 <div style="background: rgba(0,0,0,0.2); padding: 10px; border-radius: 5px; margin-bottom: 10px;">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
                         <strong>悬浮快速开关</strong>
@@ -286,6 +286,7 @@ jQuery(async () => {
     buildUI();
     renderFloatingToggle(loadSettings());
 });
+
 
 
 

@@ -1,5 +1,5 @@
-import { extension_settings, saveSettings, getContext } from "../../../extensions.js";
-import { eventSource, event_types, saveSettingsDebounced } from "../../../script.js";
+import { extension_settings, saveSettings, getContext } from "../../extensions.js";
+import { eventSource, event_types, saveSettingsDebounced } from "../../script.js";
 
 const SCRIPT_ID_PREFIX = "The_Unknown";
 const SETTING_KEY = "The_Unknown";

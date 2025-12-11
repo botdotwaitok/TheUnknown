@@ -229,7 +229,7 @@ function buildUI() {
     <div class="name-masker-settings">
         <div class="inline-drawer">
             <div class="inline-drawer-toggle inline-drawer-header">
-                <b>🫧 打码设置 (Name Masker)</b>
+                <b>🫧 未知恶物打码设置</b>
                 <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
             </div>
             <div class="inline-drawer-content">
@@ -255,9 +255,12 @@ function buildUI() {
                         <small style="opacity:0.8;">图标可拖动调整位置，点击即可切换开关。</small>
                     </div>
                 </div>
-                <div id="mask_save_btn" class="menu_button">💾 保存并应用</div>
-                <small>支持 HTML 图片标签。修改后点击保存立即生效。</small>
-            </div>
+<div id="mask_save_btn"
+     class="menu_button"
+     style="display:flex;align-items:center;gap:6px;writing-mode:horizontal-tb;text-orientation:mixed;">
+  <span>💾</span><span>保存并应用</span>
+</div>
+
         </div>
     </div>
     `;

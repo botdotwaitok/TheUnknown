@@ -115,7 +115,7 @@ function buildUI() {
     <style>
         .tu-settings-wrapper { display: flex; flex-direction: column; gap: 12px; font-size: 13px; }
         .tu-card {
-            background: var(--smart-theme-bg-transfer, rgba(0, 0, 0, 0.15));
+            background: var(--smart-theme-bg-transfer, rgba(227, 227, 227, 0.15));
             border: 1px solid var(--smart-theme-border, rgba(255, 255, 255, 0.1));
             border-radius: 8px;
             padding: 12px;
@@ -134,7 +134,7 @@ function buildUI() {
             width: 100%; font-family: monospace; font-size: 1.3em;
             background: rgba(0, 0, 0, 0.2); border: 1px solid transparent; border-radius: 4px; padding: 8px; box-sizing: border-box;
         }
-        .tu-input-area:focus { border-color: var(--smart-theme-accent, #aaa); outline: none; }
+        .tu-input-area:focus { border-color: var(--smart-theme-accent, #e6e6e6ff); outline: none; }
 
         /* 通用按钮基础样式 */
         .tu-btn {
@@ -220,7 +220,7 @@ function buildUI() {
                         <span>💾 保存并应用设置</span>
                     </div>
                     
-                    <small class="tu-hint">记得点击保存哦 | 支持 Emoji 与 图片链接</small>
+                    <small class="tu-hint">需要刷新才可以生效哦 | 支持 Emoji 与 图片链接</small>
                 </div>
 
             </div>

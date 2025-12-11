@@ -1,13 +1,12 @@
 {
-  "display_name": "TheUnknown",
-  "name": "TheUnknown",
-  "version": "1.0",
-  "author": "robot",
-  "description": "一键名字打码 (User/Char)",
-  "loading_order": 100,
-  "js": "index.js",
-  "homePage": "https://github.com/botdotwaitok",
-  "requires": [],
-  "optional": []
-
+    "display_name": "TheUnknown",
+    "name": "TheUnknown",
+    "version": "1.0",
+    "author": "robot",
+    "description": "一键名字打码 (User/Char)",
+    "loading_order": 100,
+    "js": "index.js",
+    "homePage": "https://github.com/botdotwaitok/TheUnknown",
+    "requires": [],
+    "optional": []
 }

@@ -1,15 +1,15 @@
-import { extension_settings, saveSettings, getContext } from '../../../extensions.js';
-import { eventSource, event_types, saveSettingsDebounced } from '../../../../script.js';
+import { extension_settings, getContext } from '../../../extensions.js';
+import { saveSettings, saveSettingsDebounced, eventSource, event_types } from '../../../script.js';
 
 const SCRIPT_ID_PREFIX = "The_Unknown";
 const SETTING_KEY = "The_Unknown";
-const FLOATING_TOGGLE_ID = "mask_floating_toggle";
+const FLOATING_TOGGLE_ID = "bubble_floating_toggle";
 
 const defaultSettings = {
     masterEnabled: true,
     floatingToggle: {
         enabled: true,
-        icon: "🎭",
+        icon: "🫧",
         left: 20,
         top: 80
     },
@@ -286,6 +286,7 @@ jQuery(async () => {
     buildUI();
     renderFloatingToggle(loadSettings());
 });
+
 
 
 

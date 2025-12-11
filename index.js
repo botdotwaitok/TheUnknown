@@ -1,4 +1,4 @@
-import { extension_settings, saveSettings, getContext } from "../../extensions.js";
+import { extension_settings, saveSettings, getContext } from "../../../extensions.js";
 import { eventSource, event_types, saveSettingsDebounced } from "../../../script.js";
 
 const SCRIPT_ID_PREFIX = "The_Unknown";
@@ -51,8 +51,8 @@ function applyMask() {
     const context = getContext();
     const masksActive = settings.masterEnabled !== false;
 
-    // 确保列表存在，避免首次加载时报错
-    extension_settings.regex_scripts = extension_settings.regex_scripts || [];
+    // 确保列表存在，避免首次加载时报错 (用全局 regex 列表)
+    extension_settings.regex = extension_settings.regex || [];
     
     // 我们定义一个映射关系：配置里的 key -> 酒馆里的真实名字变量
     const targets = [
@@ -65,13 +65,13 @@ function applyMask() {
         const scriptId = `${SCRIPT_ID_PREFIX}_${t.key}`; // 生成唯一ID，例如 plugin_name_masker_user
         
         // 1. 先在列表里找找看有没有这个脚本
-        const existingIndex = extension_settings.regex_scripts.findIndex(x => x.id === scriptId);
+        const existingIndex = extension_settings.regex.findIndex(x => x.id === scriptId);
 
         // 如果全局关掉、名字为空（没加载角色时）或者功能被禁用
         if (!masksActive || !t.realName || !config.enabled) {
             // 如果脚本存在，就把它禁用掉
             if (existingIndex !== -1) {
-                extension_settings.regex_scripts[existingIndex].disabled = true;
+                extension_settings.regex[existingIndex].disabled = true;
             }
             return;
         }
@@ -95,9 +95,9 @@ function applyMask() {
 
         // 3. 注入或更新
         if (existingIndex !== -1) {
-            extension_settings.regex_scripts[existingIndex] = regexScript;
+            extension_settings.regex[existingIndex] = regexScript;
         } else {
-            extension_settings.regex_scripts.push(regexScript);
+            extension_settings.regex.push(regexScript);
         }
     });
 
@@ -286,4 +286,3 @@ jQuery(async () => {
     buildUI();
     renderFloatingToggle(loadSettings());
 });
-
